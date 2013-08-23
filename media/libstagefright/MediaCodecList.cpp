@@ -48,11 +48,16 @@ const MediaCodecList *MediaCodecList::getInstance() {
 
 MediaCodecList::MediaCodecList()
     : mInitCheck(NO_INIT) {
-    FILE *file = fopen("/etc/media_codecs.xml", "r");
+    FILE *file;
 
+    file = fopen("/system/etc/media_codecs.xml", "r");
     if (file == NULL) {
-        ALOGW("unable to open media codecs configuration xml file.");
-        return;
+        /* Also try the old /etc/media_codecs.xml path */
+        file = fopen("/etc/media_codecs.xml", "r");
+        if (file == NULL) {
+            ALOGW("unable to open media codecs configuration xml file.");
+            return;
+        }
     }
 
     parseXMLFile(file);
