@@ -199,10 +199,15 @@ status_t MuxOMX::allocateNode(
 
     if (IsSoftwareComponent(name)) {
         if (mLocalOMX == NULL) {
+            ALOGI("Allocating local Node.");
             mLocalOMX = new OMX;
         }
         omx = mLocalOMX;
     } else {
+        if (mRemoteOMX == NULL) {
+            ALOGI("Allocating remote Node (false remote).");
+            mRemoteOMX = new OMX;
+        }
         omx = mRemoteOMX;
     }
 
@@ -373,6 +378,7 @@ OMXClient::OMXClient() {
 }
 
 status_t OMXClient::connect() {
+    /*
     sp<IServiceManager> sm = defaultServiceManager();
     sp<IBinder> binder = sm->getService(String16("media.player"));
     sp<IMediaPlayerService> service = interface_cast<IMediaPlayerService>(binder);
@@ -382,10 +388,16 @@ status_t OMXClient::connect() {
     mOMX = service->getOMX();
     CHECK(mOMX.get() != NULL);
 
-    if (!mOMX->livesLocally(NULL /* node */, getpid())) {
+    if (!mOMX->livesLocally(NULL, getpid())) {
         ALOGI("Using client-side OMX mux.");
         mOMX = new MuxOMX(mOMX);
     }
+    */
+
+    /* Forcing client-side OMX mux as we don't have the media.player
+     * service running in Ubuntu Touch */
+    ALOGI("Using client-side OMX mux.");
+    mOMX = new MuxOMX(mOMX);
 
     return OK;
 }
