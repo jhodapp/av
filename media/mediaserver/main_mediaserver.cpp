@@ -124,11 +124,14 @@ int main(int argc, char** argv)
         sp<ProcessState> proc(ProcessState::self());
         sp<IServiceManager> sm = defaultServiceManager();
         ALOGI("ServiceManager: %p", sm.get());
+        /* For Ubuntu Touch we only want the CameraService to be up */
+        /*
         AudioFlinger::instantiate();
         MediaPlayerService::instantiate();
-        CameraService::instantiate();
         AudioPolicyService::instantiate();
         registerExtensions();
+        */
+        CameraService::instantiate();
         ProcessState::self()->startThreadPool();
         IPCThreadState::self()->joinThreadPool();
     }
