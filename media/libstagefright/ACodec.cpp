@@ -3587,12 +3587,13 @@ bool ACodec::UninitializedState::onAllocateComponent(const sp<AMessage> &msg) {
 
     sp<AMessage> notify = new AMessage(kWhatOMXDied, mCodec->id());
 
-    mDeathNotifier = new DeathNotifier(notify);
-    if (omx->asBinder()->linkToDeath(mDeathNotifier) != OK) {
+    // Media service is not used with Ubuntu Touch
+    // mDeathNotifier = new DeathNotifier(notify);
+    // if (omx->asBinder()->linkToDeath(mDeathNotifier) != OK) {
         // This was a local binder, if it dies so do we, we won't care
         // about any notifications in the afterlife.
-        mDeathNotifier.clear();
-    }
+        // mDeathNotifier.clear();
+    // }
 
     Vector<OMXCodec::CodecNameAndQuirks> matchingCodecs;
 
