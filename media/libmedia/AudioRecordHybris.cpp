@@ -1,19 +1,20 @@
 /*
-**
-** Copyright 2008, The Android Open Source Project
-**
-** Licensed under the Apache License, Version 2.0 (the "License");
-** you may not use this file except in compliance with the License.
-** You may obtain a copy of the License at
-**
-**     http://www.apache.org/licenses/LICENSE-2.0
-**
-** Unless required by applicable law or agreed to in writing, software
-** distributed under the License is distributed on an "AS IS" BASIS,
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-** See the License for the specific language governing permissions and
-** limitations under the License.
-*/
+ *
+ * Copyright 2008, The Android Open Source Project
+ * Copyright (C) 2014 Canonical Ltd
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 
 #define LOG_NDEBUG 0
 #define LOG_TAG "AudioRecordHybris"
@@ -24,6 +25,7 @@
 #include <utils/Log.h>
 #include <private/media/AudioTrackShared.h>
 #include <media/IAudioFlinger.h>
+#include <camera_record_service.h>
 
 #define WAIT_PERIOD_MS          10
 
@@ -118,7 +120,7 @@ AudioRecord::~AudioRecord()
             mAudioRecord.clear();
         }
         IPCThreadState::self()->flushCommands();
-        AudioSystem::releaseAudioSessionId(mSessionId);
+        //AudioSystem::releaseAudioSessionId(mSessionId);
     }
 }
 
@@ -272,7 +274,7 @@ status_t AudioRecord::set(
     mMarkerReached = false;
     mNewPosition = 0;
     mUpdatePeriod = 0;
-    AudioSystem::acquireAudioSessionId(mSessionId);
+    //AudioSystem::acquireAudioSessionId(mSessionId);
     mSequence = 1;
     mObservedSequence = mSequence;
     mInOverrun = false;
@@ -437,11 +439,20 @@ status_t AudioRecord::openRecord_l(size_t epoch)
 {
     ALOGD("%s", __PRETTY_FUNCTION__);
     status_t status;
+// TODO: Remove this after AF is replaced for recording
+#if 0
     const sp<IAudioFlinger>& audioFlinger = AudioSystem::get_audio_flinger();
     if (audioFlinger == 0) {
         ALOGE("Could not get audioflinger");
         return NO_INIT;
     }
+#else
+    const sp<ICameraRecordService>& recordService = AudioSystem::get_camera_record_service();
+    if (recordService == 0) {
+        ALOGE("Could not get CameraRecordService");
+        return NO_INIT;
+    }
+#endif
 
     IAudioFlinger::track_flags_t trackFlags = IAudioFlinger::TRACK_DEFAULT;
     pid_t tid = -1;
@@ -468,14 +479,27 @@ status_t AudioRecord::openRecord_l(size_t epoch)
         }
     }
 
+    // init the input reader RecordThread:
+    status = recordService->initRecord(mSampleRate, mFormat, mChannelMask);
+    if (status != NO_ERROR) {
+        ALOGE("Failed to initialize RecordThread: %d", strerror(status));
+        return status;
+    }
+
+    // XXX: Disabled since at least for now, this does not seem required for the move to
+    // using Pulse Audio
+#if 0
     audio_io_handle_t input = AudioSystem::getInput(mInputSource, mSampleRate, mFormat,
             mChannelMask, mSessionId);
     if (input == 0) {
         ALOGE("Could not get audio input for record source %d", mInputSource);
         return BAD_VALUE;
     }
+    ALOGD("input: %d", input);
+#endif
 
     int originalSessionId = mSessionId;
+#if 0
     sp<IAudioRecord> record = audioFlinger->openRecord(input,
                                                        mSampleRate, mFormat,
                                                        mChannelMask,
@@ -484,12 +508,21 @@ status_t AudioRecord::openRecord_l(size_t epoch)
                                                        tid,
                                                        &mSessionId,
                                                        &status);
+#else
+    sp<IAudioRecord> record = recordService->openRecord(mSampleRate, mFormat,
+                                                       mChannelMask,
+                                                       mFrameCount,
+                                                       tid,
+                                                       &mSessionId,
+                                                       &status);
+#endif
+
     ALOGE_IF(originalSessionId != 0 && mSessionId != originalSessionId,
             "session ID changed from %d to %d", originalSessionId, mSessionId);
 
     if (record == 0 || status != NO_ERROR) {
-        ALOGE("AudioFlinger could not create record track, status: %d", status);
-        AudioSystem::releaseInput(input);
+        ALOGE("CameraRecordService could not create record track, status: %d", status);
+        //AudioSystem::releaseInput(input);
         return status;
     }
     sp<IMemory> iMem = record->getCblk();
@@ -506,7 +539,7 @@ status_t AudioRecord::openRecord_l(size_t epoch)
         mAudioRecord->asBinder()->unlinkToDeath(mDeathNotifier, this);
         mDeathNotifier.clear();
     }
-    mInput = input;
+    //mInput = input;
     mAudioRecord = record;
     mCblkMemory = iMem;
     audio_track_cblk_t* cblk = static_cast<audio_track_cblk_t*>(iMemPointer);
@@ -863,6 +896,7 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
                 "obtainBuffer() err=%d frameCount=%u", err, audioBuffer.frameCount);
         requested = &ClientProxy::kNonBlocking;
         size_t avail = audioBuffer.frameCount + nonContig;
+        ALOGV("frameSize(): %d, buffer.size: %d", frameSize(), audioBuffer.size);
         ALOGV("obtainBuffer(%u) returned %u = %u + %u",
                 mRemainingFrames, avail, audioBuffer.frameCount, nonContig);
         if (err != NO_ERROR) {
@@ -1017,6 +1051,7 @@ bool AudioRecord::AudioRecordThread::threadLoop()
             return true;
         }
     }
+    ALOGD("mReceiver.processAudioBuffer(this)");
     nsecs_t ns =  mReceiver.processAudioBuffer(this);
     switch (ns) {
     case 0:

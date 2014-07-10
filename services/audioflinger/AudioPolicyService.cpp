@@ -15,7 +15,7 @@
  */
 
 #define LOG_TAG "AudioPolicyService"
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 
 #include "Configuration.h"
 #undef __STRICT_ANSI__

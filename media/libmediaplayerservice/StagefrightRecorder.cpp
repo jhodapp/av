@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 #define LOG_TAG "StagefrightRecorder"
 #include <utils/Log.h>
 
@@ -94,6 +94,21 @@ status_t StagefrightRecorder::init() {
 sp<IGraphicBufferProducer> StagefrightRecorder::querySurfaceMediaSource() const {
     ALOGV("Get SurfaceMediaSource");
     return mSurfaceMediaSource->getBufferQueue();
+}
+
+void StagefrightRecorder::onReadAudioCb(void *context)
+{
+    ALOGV("onReadAudioCb");
+    if (context != NULL) {
+        StagefrightRecorder *sr = static_cast<StagefrightRecorder*>(context);
+        sr->onReadAudio();
+    }
+}
+
+void StagefrightRecorder::onReadAudio()
+{
+    ALOGV("onReadAudio");
+    mListener->readAudio();
 }
 
 status_t StagefrightRecorder::setAudioSource(audio_source_t as) {
@@ -727,6 +742,7 @@ status_t StagefrightRecorder::setParameters(const String8 &params) {
 }
 
 status_t StagefrightRecorder::setListener(const sp<IMediaRecorderClient> &listener) {
+    ALOGD("setListener");
     mListener = listener;
 
     return OK;
@@ -797,13 +813,14 @@ status_t StagefrightRecorder::start() {
         }
 
         // Disabled because mediaservice is no longer used
-        //addBatteryData(params);
+        addBatteryData(params);
     }
 
     return status;
 }
 
 sp<MediaSource> StagefrightRecorder::createAudioSource() {
+    ALOGV("createAudioSource");
     sp<AudioSource> audioSource =
         new AudioSource(
                 mAudioSource,
@@ -811,11 +828,19 @@ sp<MediaSource> StagefrightRecorder::createAudioSource() {
                 mAudioChannels);
 
     status_t err = audioSource->initCheck();
-
     if (err != OK) {
         ALOGE("audio source is not initialized");
         return NULL;
     }
+
+    if (audioSource != 0) {
+        audioSource->setListener(mListener);
+        audioSource->setReadAudioCb(&StagefrightRecorder::onReadAudioCb, this);
+    }
+    else
+        ALOGW("Can't call AudioSource::setListener since audioSource is NULL");
+
+    ALOGV("audioSource is initialized");
 
     sp<MetaData> encMeta = new MetaData;
     const char *mime;
@@ -864,6 +889,9 @@ sp<MediaSource> StagefrightRecorder::createAudioSource() {
         OMXCodec::Create(client.interface(), encMeta,
                          true /* createEncoder */, audioSource);
     mAudioSourceNode = audioSource;
+
+    ALOGV("Calling readAudio!");
+    //mListener->readAudio();
 
     return audioEncoder;
 }
@@ -1472,6 +1500,7 @@ status_t StagefrightRecorder::setupVideoEncoder(
 }
 
 status_t StagefrightRecorder::setupAudioEncoder(const sp<MediaWriter>& writer) {
+    ALOGV("setupAudioEncoder");
     status_t status = BAD_VALUE;
     if (OK != (status = checkAudioEncoderCapabilities())) {
         return status;
@@ -1490,11 +1519,13 @@ status_t StagefrightRecorder::setupAudioEncoder(const sp<MediaWriter>& writer) {
             return UNKNOWN_ERROR;
     }
 
+    ALOGV("Creating audio source");
     sp<MediaSource> audioEncoder = createAudioSource();
     if (audioEncoder == NULL) {
         return UNKNOWN_ERROR;
     }
 
+    ALOGV("Adding the audioEncoder as a source to the MPEG4Writer");
     writer->addSource(audioEncoder);
     return OK;
 }
@@ -1533,7 +1564,7 @@ status_t StagefrightRecorder::setupMPEG4Recording(
     // camcorder applications in the recorded files.
     // TODO: Disable instantiating the audio encoder until we can successfully
     // use PulseAudio for getting the mic input
-#if 0
+#if 1
     if (!mCaptureTimeLapse && (mAudioSource != AUDIO_SOURCE_CNT)) {
         err = setupAudioEncoder(writer);
         if (err != OK) return err;
@@ -1569,6 +1600,7 @@ status_t StagefrightRecorder::setupMPEG4Recording(
 
 void StagefrightRecorder::setupMPEG4MetaData(int64_t startTimeUs, int32_t totalBitRate,
         sp<MetaData> *meta) {
+    ALOGV("setupMPEG4MetaData");
     (*meta)->setInt64(kKeyTime, startTimeUs);
     (*meta)->setInt32(kKeyFileType, mOutputFormat);
     (*meta)->setInt32(kKeyBitRate, totalBitRate);
@@ -1580,6 +1612,7 @@ void StagefrightRecorder::setupMPEG4MetaData(int64_t startTimeUs, int32_t totalB
         (*meta)->setInt64(kKeyTrackTimeStatus, mTrackEveryTimeDurationUs);
     }
     if (mRotationDegrees != 0) {
+        ALOGV("Setting rotation degrees to be %d", mRotationDegrees);
         (*meta)->setInt32(kKeyRotation, mRotationDegrees);
     }
 }
@@ -1624,7 +1657,7 @@ status_t StagefrightRecorder::pause() {
         }
 
         // Disabled because mediaservice is no longer used
-        //addBatteryData(params);
+        addBatteryData(params);
     }
 
 
@@ -1662,7 +1695,7 @@ status_t StagefrightRecorder::stop() {
         }
 
         // Disabled because mediaservice is no longer used
-        //addBatteryData(params);
+        addBatteryData(params);
     }
 
 

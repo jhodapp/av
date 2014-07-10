@@ -22,7 +22,10 @@ LOCAL_SRC_FILES:= \
     IDrm.cpp \
     IDrmClient.cpp \
     IHDCP.cpp \
-    AudioRecord.cpp \
+    ../../../../ubuntu/libhybris/compat/media/record_thread.cpp \
+    ../../../../ubuntu/libhybris/compat/media/record_track.cpp \
+    ../../../../ubuntu/libhybris/compat/media/camera_record_service.cpp \
+    AudioRecordHybris.cpp \
     AudioSystem.cpp \
     mediaplayer.cpp \
     IMediaLogService.cpp \
@@ -67,7 +70,7 @@ LOCAL_CFLAGS += -DSINGLE_STATE_QUEUE_INSTANTIATIONS='"SingleStateQueueInstantiat
 LOCAL_SHARED_LIBRARIES := \
 	libui liblog libcutils libutils libbinder libsonivox libicuuc libexpat \
         libcamera_client libstagefright_foundation \
-        libgui libdl libaudioutils
+        libgui libdl libaudioutils #libmedia_record_layer
 
 LOCAL_WHOLE_STATIC_LIBRARY := libmedia_helper
 
@@ -78,6 +81,8 @@ LOCAL_C_INCLUDES := \
     $(TOP)/frameworks/native/include/media/openmax \
     external/icu4c/common \
     $(call include-path-for, audio-effects) \
-    $(call include-path-for, audio-utils)
+    $(call include-path-for, audio-utils) \
+    $(TOP)/ubuntu/libhybris/hybris/include \
+    $(TOP)/ubuntu/libhybris/compat/media
 
 include $(BUILD_SHARED_LIBRARY)
