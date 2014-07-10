@@ -29,6 +29,7 @@ namespace android {
 typedef void (*audio_error_callback)(status_t err);
 
 class IAudioFlinger;
+class ICameraRecordService;
 class IAudioPolicyService;
 class String8;
 
@@ -86,6 +87,11 @@ public:
 
     // helper function to obtain AudioFlinger service handle
     static const sp<IAudioFlinger>& get_audio_flinger();
+
+#if 1
+    // helper function to obtain CameraRecordService service handle
+    static const sp<ICameraRecordService>& get_camera_record_service();
+#endif
 
     static float linearToLog(int volume);
     static int logToLinear(float volume);
@@ -292,6 +298,7 @@ private:
 
     static Mutex gLock;
     static sp<IAudioFlinger> gAudioFlinger;
+    static sp<ICameraRecordService> gCameraRecord;
     static audio_error_callback gAudioErrorCallback;
 
     static size_t gInBuffSize;
@@ -301,6 +308,10 @@ private:
     static audio_channel_mask_t gPrevInChannelMask;
 
     static sp<IAudioPolicyService> gAudioPolicyService;
+
+    // This used to be part of AudioFlinger, but brought into here since
+    // we're no longer using AudioFlinger
+    static volatile int32_t        mNextUniqueId;
 
     // mapping between stream types and outputs
     static DefaultKeyedVector<audio_stream_type_t, audio_io_handle_t> gStreamOutputMap;

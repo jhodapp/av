@@ -42,6 +42,8 @@ struct MediaWriter : public RefBase {
     virtual void setMaxFileDuration(int64_t durationUs) { mMaxFileDurationLimitUs = durationUs; }
     virtual void setListener(const sp<IMediaRecorderClient>& listener) {
         mListener = listener;
+        //ALOGE("Calling NOTIFY");
+        //notify(2, 5, 10);
     }
 
     virtual status_t dump(int fd, const Vector<String16>& args) {

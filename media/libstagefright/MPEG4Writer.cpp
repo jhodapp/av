@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 #define LOG_TAG "MPEG4Writer"
 #include <utils/Log.h>
 
@@ -1703,7 +1703,9 @@ status_t MPEG4Writer::Track::start(MetaData *params) {
     mStartTimeRealUs = startTimeUs;
 
     int32_t rotationDegrees;
+    ALOGV("Seeing if we can set rotationDegrees");
     if (!mIsAudio && params && params->findInt32(kKeyRotation, &rotationDegrees)) {
+        ALOGV("Setting rotationDegrees to be: %d", rotationDegrees);
         mRotation = rotationDegrees;
     }
 
@@ -2823,6 +2825,7 @@ void MPEG4Writer::Track::writeTkhdBox(uint32_t now) {
     mOwner->writeInt16(mIsAudio ? 0x100 : 0);  // volume
     mOwner->writeInt16(0);             // reserved
 
+    ALOGV("Setting mRotation to be (matrix): %d", mRotation);
     mOwner->writeCompositionMatrix(mRotation);       // matrix
 
     if (mIsAudio) {

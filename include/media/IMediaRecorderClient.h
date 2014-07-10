@@ -29,6 +29,7 @@ public:
     DECLARE_META_INTERFACE(MediaRecorderClient);
 
     virtual void notify(int msg, int ext1, int ext2) = 0;
+    virtual void readAudio() = 0;
 };
 
 // ----------------------------------------------------------------------------

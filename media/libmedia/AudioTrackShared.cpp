@@ -15,7 +15,7 @@
  */
 
 #define LOG_TAG "AudioTrackShared"
-//#define LOG_NDEBUG 0
+#define LOG_NDEBUG 0
 
 #include <private/media/AudioTrackShared.h>
 #include <utils/Log.h>
@@ -64,6 +64,7 @@ const struct timespec ClientProxy::kNonBlocking = {0 /*tv_sec*/, 0 /*tv_nsec*/};
 status_t ClientProxy::obtainBuffer(Buffer* buffer, const struct timespec *requested,
         struct timespec *elapsed)
 {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     LOG_ALWAYS_FATAL_IF(buffer == NULL || buffer->mFrameCount == 0);
     struct timespec total;          // total elapsed time spent waiting
     total.tv_sec = 0;
