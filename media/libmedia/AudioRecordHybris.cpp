@@ -792,6 +792,7 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
 
     // Get current position of server
     size_t position = mProxy->getPosition();
+    ALOGV("position from proxy: %d", position);
 
     // Manage marker callback
     bool markerReached = false;
@@ -826,6 +827,7 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
 
     mLock.unlock();
 
+    ALOGV("Performing callbacks");
     // perform callbacks while unlocked
     if (newOverrun) {
         mCbf(EVENT_OVERRUN, mUserData, NULL);
@@ -844,6 +846,7 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
         mCbf(EVENT_NEW_IAUDIORECORD, mUserData, NULL);
     }
 
+    ALOGV("Checking if active");
     // if inactive, then don't run me again until re-started
     if (!active) {
         return NS_INACTIVE;
@@ -886,6 +889,7 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
         requested = &timeout;
     }
 
+    ALOGV("Start loop while (mRemainingFrames > 0)");
     while (mRemainingFrames > 0) {
 
         Buffer audioBuffer;

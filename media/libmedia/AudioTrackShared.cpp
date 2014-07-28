@@ -247,6 +247,7 @@ status_t ClientProxy::obtainBuffer(Buffer* buffer, const struct timespec *reques
     }
 
 end:
+    ALOGV("Reached the label end in obtainBuffer");
     if (status != NO_ERROR) {
         buffer->mFrameCount = 0;
         buffer->mRaw = NULL;
@@ -509,6 +510,7 @@ ServerProxy::ServerProxy(audio_track_cblk_t* cblk, void *buffers, size_t frameCo
 
 status_t ServerProxy::obtainBuffer(Buffer* buffer, bool ackFlush)
 {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     LOG_ALWAYS_FATAL_IF(buffer == NULL || buffer->mFrameCount == 0);
     if (mIsShutdown) {
         goto no_init;

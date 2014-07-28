@@ -813,7 +813,7 @@ status_t StagefrightRecorder::start() {
         }
 
         // Disabled because mediaservice is no longer used
-        addBatteryData(params);
+        //addBatteryData(params);
     }
 
     return status;
@@ -1657,7 +1657,7 @@ status_t StagefrightRecorder::pause() {
         }
 
         // Disabled because mediaservice is no longer used
-        addBatteryData(params);
+        //addBatteryData(params);
     }
 
 
@@ -1695,7 +1695,7 @@ status_t StagefrightRecorder::stop() {
         }
 
         // Disabled because mediaservice is no longer used
-        addBatteryData(params);
+        //addBatteryData(params);
     }
 
 
