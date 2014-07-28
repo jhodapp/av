@@ -491,12 +491,17 @@ status_t AudioSystem::getRenderPosition(audio_io_handle_t output, size_t *halFra
 }
 
 size_t AudioSystem::getInputFramesLost(audio_io_handle_t ioHandle) {
+// TODO: Remove this after AF is replaced for recording
+#if 0
     const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
     unsigned int result = 0;
     if (af == 0) return result;
     if (ioHandle == 0) return result;
 
     result = af->getInputFramesLost(ioHandle);
+#endif
+    ALOGV("%s: always returning 0", __PRETTY_FUNCTION__);
+    unsigned int result = 0;
     return result;
 }
 
