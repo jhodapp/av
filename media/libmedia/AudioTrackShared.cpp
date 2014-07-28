@@ -270,6 +270,7 @@ end:
 
 void ClientProxy::releaseBuffer(Buffer* buffer)
 {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     LOG_ALWAYS_FATAL_IF(buffer == NULL);
     size_t stepCount = buffer->mFrameCount;
     if (stepCount == 0 || mIsShutdown) {
@@ -294,6 +295,7 @@ void ClientProxy::releaseBuffer(Buffer* buffer)
 
 void ClientProxy::binderDied()
 {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     audio_track_cblk_t* cblk = mCblk;
     if (!(android_atomic_or(CBLK_INVALID, &cblk->mFlags) & CBLK_INVALID)) {
         // it seems that a FUTEX_WAKE_PRIVATE will not wake a FUTEX_WAIT, even within same process
@@ -304,6 +306,7 @@ void ClientProxy::binderDied()
 
 void ClientProxy::interrupt()
 {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     audio_track_cblk_t* cblk = mCblk;
     if (!(android_atomic_or(CBLK_INTERRUPT, &cblk->mFlags) & CBLK_INTERRUPT)) {
         (void) __futex_syscall3(&cblk->mFutex, mClientInServer ? FUTEX_WAKE_PRIVATE : FUTEX_WAKE,
@@ -311,14 +314,31 @@ void ClientProxy::interrupt()
     }
 }
 
+size_t ClientProxy::getPosition() {
+    ALOGV("getPosition(): position: %d, mEpoch: %d, mCblk->mServer: %d", mEpoch + mCblk->mServer, mEpoch, mCblk->mServer);
+    return mEpoch + mCblk->mServer;
+}
+
+void ClientProxy::setEpoch(size_t epoch) {
+    ALOGV("setEpoch(): %d", epoch);
+    mEpoch = epoch;
+}
+
+size_t ClientProxy::getEpoch() const {
+    ALOGV("getEpoch(): %d", mEpoch);
+    return mEpoch;
+}
+
 size_t ClientProxy::getMisalignment()
 {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     audio_track_cblk_t* cblk = mCblk;
     return (mFrameCountP2 - (mIsOut ? cblk->u.mStreaming.mRear : cblk->u.mStreaming.mFront)) &
             (mFrameCountP2 - 1);
 }
 
 size_t ClientProxy::getFramesFilled() {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     audio_track_cblk_t* cblk = mCblk;
     int32_t front;
     int32_t rear;
@@ -599,6 +619,7 @@ no_init:
 
 void ServerProxy::releaseBuffer(Buffer* buffer)
 {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     LOG_ALWAYS_FATAL_IF(buffer == NULL);
     size_t stepCount = buffer->mFrameCount;
     if (stepCount == 0 || mIsShutdown) {
@@ -650,6 +671,7 @@ void ServerProxy::releaseBuffer(Buffer* buffer)
 
 size_t AudioTrackServerProxy::framesReady()
 {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     LOG_ALWAYS_FATAL_IF(!mIsOut);
 
     if (mIsShutdown) {
@@ -677,6 +699,7 @@ size_t AudioTrackServerProxy::framesReady()
 }
 
 bool  AudioTrackServerProxy::setStreamEndDone() {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     bool old =
             (android_atomic_or(CBLK_STREAM_END_DONE, &mCblk->mFlags) & CBLK_STREAM_END_DONE) != 0;
     if (!old) {
@@ -688,6 +711,7 @@ bool  AudioTrackServerProxy::setStreamEndDone() {
 
 void AudioTrackServerProxy::tallyUnderrunFrames(uint32_t frameCount)
 {
+    ALOGV("%s", __PRETTY_FUNCTION__);
     mCblk->u.mStreaming.mUnderrunFrames += frameCount;
 
     // FIXME also wake futex so that underrun is noticed more quickly

@@ -687,6 +687,7 @@ void AudioRecord::releaseBuffer(Buffer* audioBuffer)
 
     AutoMutex lock(mLock);
     mInOverrun = false;
+    ALOGV("Calling mProxy->releaseBuffer (line: %d)", __LINE__);
     mProxy->releaseBuffer(&buffer);
 
     // the server does not automatically disable recorder on overrun, so no need to restart
@@ -735,6 +736,7 @@ ssize_t AudioRecord::read(void* buffer, size_t userSize)
         userSize -= bytesRead;
         read += bytesRead;
 
+        ALOGV("Calling releaseBuffer (line: %d)", __LINE__);
         releaseBuffer(&audioBuffer);
     }
 
@@ -951,6 +953,7 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
             misalignment = 0;
         }
 
+        ALOGV("Calling releaseBuffer (line: %d)", __LINE__);
         releaseBuffer(&audioBuffer);
 
         // FIXME here is where we would repeat EVENT_MORE_DATA again on same advanced buffer
