@@ -439,20 +439,11 @@ status_t AudioRecord::openRecord_l(size_t epoch)
 {
     ALOGD("%s", __PRETTY_FUNCTION__);
     status_t status;
-// TODO: Remove this after AF is replaced for recording
-#if 0
-    const sp<IAudioFlinger>& audioFlinger = AudioSystem::get_audio_flinger();
-    if (audioFlinger == 0) {
-        ALOGE("Could not get audioflinger");
-        return NO_INIT;
-    }
-#else
     const sp<ICameraRecordService>& recordService = AudioSystem::get_camera_record_service();
     if (recordService == 0) {
         ALOGE("Could not get CameraRecordService");
         return NO_INIT;
     }
-#endif
 
     IAudioFlinger::track_flags_t trackFlags = IAudioFlinger::TRACK_DEFAULT;
     pid_t tid = -1;
@@ -486,36 +477,13 @@ status_t AudioRecord::openRecord_l(size_t epoch)
         return status;
     }
 
-    // XXX: Disabled since at least for now, this does not seem required for the move to
-    // using Pulse Audio
-#if 0
-    audio_io_handle_t input = AudioSystem::getInput(mInputSource, mSampleRate, mFormat,
-            mChannelMask, mSessionId);
-    if (input == 0) {
-        ALOGE("Could not get audio input for record source %d", mInputSource);
-        return BAD_VALUE;
-    }
-    ALOGD("input: %d", input);
-#endif
-
     int originalSessionId = mSessionId;
-#if 0
-    sp<IAudioRecord> record = audioFlinger->openRecord(input,
-                                                       mSampleRate, mFormat,
-                                                       mChannelMask,
-                                                       mFrameCount,
-                                                       &trackFlags,
-                                                       tid,
-                                                       &mSessionId,
-                                                       &status);
-#else
     sp<IAudioRecord> record = recordService->openRecord(mSampleRate, mFormat,
                                                        mChannelMask,
                                                        mFrameCount,
                                                        tid,
                                                        &mSessionId,
                                                        &status);
-#endif
 
     ALOGE_IF(originalSessionId != 0 && mSessionId != originalSessionId,
             "session ID changed from %d to %d", originalSessionId, mSessionId);
@@ -665,6 +633,7 @@ status_t AudioRecord::obtainBuffer(Buffer* audioBuffer, const struct timespec *r
     audioBuffer->frameCount = buffer.mFrameCount;
     audioBuffer->size = buffer.mFrameCount * mFrameSize;
     audioBuffer->raw = buffer.mRaw;
+
     if (nonContig != NULL) {
         *nonContig = buffer.mNonContig;
     }
@@ -687,7 +656,6 @@ void AudioRecord::releaseBuffer(Buffer* audioBuffer)
 
     AutoMutex lock(mLock);
     mInOverrun = false;
-    ALOGV("Calling mProxy->releaseBuffer (line: %d)", __LINE__);
     mProxy->releaseBuffer(&buffer);
 
     // the server does not automatically disable recorder on overrun, so no need to restart
@@ -736,7 +704,6 @@ ssize_t AudioRecord::read(void* buffer, size_t userSize)
         userSize -= bytesRead;
         read += bytesRead;
 
-        ALOGV("Calling releaseBuffer (line: %d)", __LINE__);
         releaseBuffer(&audioBuffer);
     }
 
@@ -794,7 +761,6 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
 
     // Get current position of server
     size_t position = mProxy->getPosition();
-    ALOGV("position from proxy: %d", position);
 
     // Manage marker callback
     bool markerReached = false;
@@ -829,7 +795,6 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
 
     mLock.unlock();
 
-    ALOGV("Performing callbacks");
     // perform callbacks while unlocked
     if (newOverrun) {
         mCbf(EVENT_OVERRUN, mUserData, NULL);
@@ -848,7 +813,6 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
         mCbf(EVENT_NEW_IAUDIORECORD, mUserData, NULL);
     }
 
-    ALOGV("Checking if active");
     // if inactive, then don't run me again until re-started
     if (!active) {
         return NS_INACTIVE;
@@ -891,7 +855,6 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
         requested = &timeout;
     }
 
-    ALOGV("Start loop while (mRemainingFrames > 0)");
     while (mRemainingFrames > 0) {
 
         Buffer audioBuffer;
@@ -902,7 +865,6 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
                 "obtainBuffer() err=%d frameCount=%u", err, audioBuffer.frameCount);
         requested = &ClientProxy::kNonBlocking;
         size_t avail = audioBuffer.frameCount + nonContig;
-        ALOGV("frameSize(): %d, buffer.size: %d", frameSize(), audioBuffer.size);
         ALOGV("obtainBuffer(%u) returned %u = %u + %u",
                 mRemainingFrames, avail, audioBuffer.frameCount, nonContig);
         if (err != NO_ERROR) {
@@ -953,7 +915,6 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
             misalignment = 0;
         }
 
-        ALOGV("Calling releaseBuffer (line: %d)", __LINE__);
         releaseBuffer(&audioBuffer);
 
         // FIXME here is where we would repeat EVENT_MORE_DATA again on same advanced buffer
@@ -1058,7 +1019,6 @@ bool AudioRecord::AudioRecordThread::threadLoop()
             return true;
         }
     }
-    ALOGD("mReceiver.processAudioBuffer(this)");
     nsecs_t ns =  mReceiver.processAudioBuffer(this);
     switch (ns) {
     case 0:

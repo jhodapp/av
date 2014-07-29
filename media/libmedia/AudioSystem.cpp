@@ -379,9 +379,6 @@ static int check_input_parameters(uint32_t sample_rate,
                                   audio_format_t format,
                                   int channel_count)
 {
-    ALOGV("format: %d", format);
-    ALOGV("channel_count: %d", channel_count);
-    ALOGV("sample_rate: %d", sample_rate);
     if (format != AUDIO_FORMAT_PCM_16_BIT) return -EINVAL;
 
     if ((channel_count < 1) || (channel_count > 2)) return -EINVAL;
@@ -442,14 +439,6 @@ status_t AudioSystem::getInputBufferSize(uint32_t sampleRate, audio_format_t for
     if ((inBuffSize == 0) || (sampleRate != gPrevInSamplingRate) || (format != gPrevInFormat)
         || (channelMask != gPrevInChannelMask)) {
         gLock.unlock();
-// TODO: Remove this after AF is replaced for recording
-#if 0
-        const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
-        if (af == 0) {
-            return PERMISSION_DENIED;
-        }
-        inBuffSize = af->getInputBufferSize(sampleRate, format, channelMask);
-#endif
         inBuffSize = get_input_buffer_size(sampleRate, format, popcount(channelMask));
         ALOGV("%s: %ld", __PRETTY_FUNCTION__, inBuffSize);
         gLock.lock();
@@ -491,15 +480,6 @@ status_t AudioSystem::getRenderPosition(audio_io_handle_t output, size_t *halFra
 }
 
 size_t AudioSystem::getInputFramesLost(audio_io_handle_t ioHandle) {
-// TODO: Remove this after AF is replaced for recording
-#if 0
-    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
-    unsigned int result = 0;
-    if (af == 0) return result;
-    if (ioHandle == 0) return result;
-
-    result = af->getInputFramesLost(ioHandle);
-#endif
     ALOGV("%s: always returning 0", __PRETTY_FUNCTION__);
     unsigned int result = 0;
     return result;
@@ -508,13 +488,6 @@ size_t AudioSystem::getInputFramesLost(audio_io_handle_t ioHandle) {
 volatile int32_t AudioSystem::mNextUniqueId = 1;
 
 int32_t AudioSystem::newAudioSessionId() {
-// TODO: Remove this after AF is replaced for recording
-#if 0
-    const sp<IAudioFlinger>& af = AudioSystem::get_audio_flinger();
-    if (af == 0) return 0;
-    return af->newAudioSessionId();
-#endif
-
     return android_atomic_inc(&mNextUniqueId);
 }
 
