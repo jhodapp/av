@@ -33,22 +33,17 @@
 namespace android {
 
 static void AudioRecordCallbackFunction(int event, void *user, void *info) {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     AudioSource *source = (AudioSource *) user;
     switch (event) {
         case AudioRecord::EVENT_MORE_DATA: {
-            ALOGD("EVENT_MORE_DATA");
-            //source->triggerReadAudio();
             source->dataCallback(*((AudioRecord::Buffer *) info));
             break;
         }
         case AudioRecord::EVENT_OVERRUN: {
-            ALOGD("EVENT_OVERRUN");
             ALOGW("AudioRecord reported overrun!");
             break;
         }
         default:
-            ALOGD("EVENT default");
             // does nothing
             break;
     }
@@ -63,7 +58,6 @@ AudioSource::AudioSource(
       mPrevSampleTimeUs(0),
       mNumFramesReceived(0),
       mNumClientOwnedBuffers(0) {
-    ALOGV("%s", __PRETTY_FUNCTION__);
     ALOGV("sampleRate: %d, channelCount: %d", sampleRate, channelCount);
     CHECK(channelCount == 1 || channelCount == 2);
 
@@ -83,7 +77,6 @@ AudioSource::AudioSource(
             bufCount++;
         }
 
-        ALOGV("Creating new AudioRecord instance");
         mRecord = new AudioRecord(
                     inputSource, sampleRate, AUDIO_FORMAT_PCM_16_BIT,
                     audio_channel_in_mask_from_count(channelCount),
@@ -98,20 +91,17 @@ AudioSource::AudioSource(
 }
 
 AudioSource::~AudioSource() {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     if (mStarted) {
         reset();
     }
 }
 
 status_t AudioSource::initCheck() const {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     return mInitCheck;
 }
 
 status_t AudioSource::setListener(const sp<IMediaRecorderClient>& listener)
 {
-    ALOGV("setListener");
     Mutex::Autolock autoLock(mLock);
     mListener = listener;
 
@@ -119,7 +109,6 @@ status_t AudioSource::setListener(const sp<IMediaRecorderClient>& listener)
 }
 
 status_t AudioSource::start(MetaData *params) {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     Mutex::Autolock autoLock(mLock);
     if (mStarted) {
         return UNKNOWN_ERROR;
@@ -149,7 +138,6 @@ status_t AudioSource::start(MetaData *params) {
 }
 
 void AudioSource::releaseQueuedFrames_l() {
-    ALOGV("releaseQueuedFrames_l");
     List<MediaBuffer *>::iterator it;
     while (!mBuffersReceived.empty()) {
         it = mBuffersReceived.begin();
@@ -166,7 +154,6 @@ void AudioSource::waitOutstandingEncodingFrames_l() {
 }
 
 status_t AudioSource::reset() {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     Mutex::Autolock autoLock(mLock);
     if (!mStarted) {
         return UNKNOWN_ERROR;
@@ -186,7 +173,6 @@ status_t AudioSource::reset() {
 
 void AudioSource::setReadAudioCb(on_audio_source_read_audio cb, void *context)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     mAudioReadCb = cb;
     mAudioReadContext = context;
 
@@ -197,7 +183,6 @@ void AudioSource::setReadAudioCb(on_audio_source_read_audio cb, void *context)
 
 void AudioSource::triggerReadAudio()
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     if (mAudioReadCb != NULL) {
         mAudioReadCb(mAudioReadContext);
     }
@@ -206,7 +191,6 @@ void AudioSource::triggerReadAudio()
 }
 
 sp<MetaData> AudioSource::getFormat() {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     Mutex::Autolock autoLock(mLock);
     if (mInitCheck != OK) {
         return 0;
@@ -225,7 +209,6 @@ void AudioSource::rampVolume(
         int32_t startFrame, int32_t rampDurationFrames,
         uint8_t *data,   size_t bytes) {
 
-    ALOGD("%s", __PRETTY_FUNCTION__);
     const int32_t kShift = 14;
     int32_t fixedMultiplier = (startFrame << kShift) / rampDurationFrames;
     const int32_t nChannels = mRecord->channelCount();
@@ -256,7 +239,6 @@ void AudioSource::rampVolume(
 
 status_t AudioSource::read(
         MediaBuffer **out, const ReadOptions *options) {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     Mutex::Autolock autoLock(mLock);
     *out = NULL;
 
@@ -305,7 +287,6 @@ status_t AudioSource::read(
 }
 
 void AudioSource::signalBufferReturned(MediaBuffer *buffer) {
-    ALOGV("signalBufferReturned: %p", buffer->data());
     Mutex::Autolock autoLock(mLock);
     --mNumClientOwnedBuffers;
     buffer->setObserver(0);
@@ -388,7 +369,6 @@ status_t AudioSource::dataCallback(const AudioRecord::Buffer& audioBuffer) {
 }
 
 void AudioSource::queueInputBuffer_l(MediaBuffer *buffer, int64_t timeUs) {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     const size_t bufferSize = buffer->range_length();
     const size_t frameSize = mRecord->frameSize();
     const int64_t timestampUs =
@@ -409,7 +389,6 @@ void AudioSource::queueInputBuffer_l(MediaBuffer *buffer, int64_t timeUs) {
 }
 
 void AudioSource::trackMaxAmplitude(int16_t *data, int nSamples) {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     for (int i = nSamples; i > 0; --i) {
         int16_t value = *data++;
         if (value < 0) {
@@ -422,7 +401,6 @@ void AudioSource::trackMaxAmplitude(int16_t *data, int nSamples) {
 }
 
 int16_t AudioSource::getMaxAmplitude() {
-    ALOGD("%s", __PRETTY_FUNCTION__);
     // First call activates the tracking.
     if (!mTrackMaxAmplitude) {
         mTrackMaxAmplitude = true;

@@ -1562,15 +1562,11 @@ status_t StagefrightRecorder::setupMPEG4Recording(
     // Audio source is added at the end if it exists.
     // This help make sure that the "recoding" sound is suppressed for
     // camcorder applications in the recorded files.
-    // TODO: Disable instantiating the audio encoder until we can successfully
-    // use PulseAudio for getting the mic input
-#if 1
     if (!mCaptureTimeLapse && (mAudioSource != AUDIO_SOURCE_CNT)) {
         err = setupAudioEncoder(writer);
         if (err != OK) return err;
         *totalBitRate += mAudioBitRate;
     }
-#endif
 
     if (mInterleaveDurationUs > 0) {
         reinterpret_cast<MPEG4Writer *>(writer.get())->

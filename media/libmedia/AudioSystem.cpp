@@ -79,7 +79,6 @@ const sp<IAudioFlinger>& AudioSystem::get_audio_flinger()
     return gAudioFlinger;
 }
 
-#if 1
 const sp<ICameraRecordService>& AudioSystem::get_camera_record_service()
 {
     Mutex::Autolock _l(gLock);
@@ -94,26 +93,12 @@ const sp<ICameraRecordService>& AudioSystem::get_camera_record_service()
             ALOGW("CameraRecordService not published, waiting...");
             usleep(500000); // 0.5 s
         } while (true);
-#if 0
-        if (gCameraRecordServiceClient == NULL) {
-            gCameraRecordServiceClient = new CameraRecordServiceClient();
-        } else {
-            if (gAudioErrorCallback) {
-                gAudioErrorCallback(NO_ERROR);
-            }
-        }
-        binder->linkToDeath(gCameraRecordServiceClient);
-#endif
         gCameraRecord = interface_cast<ICameraRecordService>(binder);
-#if 0
-        gCameraRecord->registerClient(gCameraRecordServiceClient);
-#endif
     }
     ALOGE_IF(gCameraRecord==0, "no CameraRecordService!?");
 
     return gCameraRecord;
 }
-#endif
 
 /* static */ status_t AudioSystem::checkAudioFlinger()
 {
@@ -727,15 +712,8 @@ audio_io_handle_t AudioSystem::getInput(audio_source_t inputSource,
                                     audio_channel_mask_t channelMask,
                                     int sessionId)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
-#if 0
-    const sp<IAudioPolicyService>& aps = AudioSystem::get_audio_policy_service();
-    if (aps == 0) return 0;
-    return aps->getInput(inputSource, samplingRate, format, channelMask, sessionId);
-#else
-    ALOGD("Returning a static audio_io_handle_t == 1");
+    ALOGV("Returning a static audio_io_handle_t == 1");
     return 1;
-#endif
 }
 
 status_t AudioSystem::startInput(audio_io_handle_t input)

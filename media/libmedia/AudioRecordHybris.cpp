@@ -14,6 +14,8 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * Authored by: Jim Hodapp <jim.hodapp@canonical.com>
  */
 
 #define LOG_NDEBUG 0
@@ -120,7 +122,6 @@ AudioRecord::~AudioRecord()
             mAudioRecord.clear();
         }
         IPCThreadState::self()->flushCommands();
-        //AudioSystem::releaseAudioSessionId(mSessionId);
     }
 }
 
@@ -138,7 +139,7 @@ status_t AudioRecord::set(
         transfer_type transferType,
         audio_input_flags_t flags)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     switch (transferType) {
     case TRANSFER_DEFAULT:
         if (cbf == NULL || threadCanCallJava) {
@@ -274,7 +275,6 @@ status_t AudioRecord::set(
     mMarkerReached = false;
     mNewPosition = 0;
     mUpdatePeriod = 0;
-    //AudioSystem::acquireAudioSessionId(mSessionId);
     mSequence = 1;
     mObservedSequence = mSequence;
     mInOverrun = false;
@@ -301,7 +301,6 @@ status_t AudioRecord::start(AudioSystem::sync_event_t event, int triggerSession)
 
     status_t status = NO_ERROR;
     if (!(flags & CBLK_INVALID)) {
-        ALOGV("mAudioRecord->start()");
         status = mAudioRecord->start(event, triggerSession);
         if (status == DEAD_OBJECT) {
             flags |= CBLK_INVALID;
@@ -330,7 +329,7 @@ status_t AudioRecord::start(AudioSystem::sync_event_t event, int triggerSession)
 
 void AudioRecord::stop()
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     AutoMutex lock(mLock);
     if (!mActive) {
         return;
@@ -353,14 +352,14 @@ void AudioRecord::stop()
 
 bool AudioRecord::stopped() const
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     AutoMutex lock(mLock);
     return !mActive;
 }
 
 status_t AudioRecord::setMarkerPosition(uint32_t marker)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     if (mCbf == NULL) {
         return INVALID_OPERATION;
     }
@@ -374,7 +373,7 @@ status_t AudioRecord::setMarkerPosition(uint32_t marker)
 
 status_t AudioRecord::getMarkerPosition(uint32_t *marker) const
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     if (marker == NULL) {
         return BAD_VALUE;
     }
@@ -387,7 +386,7 @@ status_t AudioRecord::getMarkerPosition(uint32_t *marker) const
 
 status_t AudioRecord::setPositionUpdatePeriod(uint32_t updatePeriod)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     if (mCbf == NULL) {
         return INVALID_OPERATION;
     }
@@ -401,7 +400,7 @@ status_t AudioRecord::setPositionUpdatePeriod(uint32_t updatePeriod)
 
 status_t AudioRecord::getPositionUpdatePeriod(uint32_t *updatePeriod) const
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     if (updatePeriod == NULL) {
         return BAD_VALUE;
     }
@@ -414,7 +413,7 @@ status_t AudioRecord::getPositionUpdatePeriod(uint32_t *updatePeriod) const
 
 status_t AudioRecord::getPosition(uint32_t *position) const
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     if (position == NULL) {
         return BAD_VALUE;
     }
@@ -427,7 +426,7 @@ status_t AudioRecord::getPosition(uint32_t *position) const
 
 unsigned int AudioRecord::getInputFramesLost() const
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     // no need to check mActive, because if inactive this will return 0, which is what we want
     return AudioSystem::getInputFramesLost(getInput());
 }
@@ -437,8 +436,9 @@ unsigned int AudioRecord::getInputFramesLost() const
 // must be called with mLock held
 status_t AudioRecord::openRecord_l(size_t epoch)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     status_t status;
+    // Get an instance of the CameraRecordInstance over Binder
     const sp<ICameraRecordService>& recordService = AudioSystem::get_camera_record_service();
     if (recordService == 0) {
         ALOGE("Could not get CameraRecordService");
@@ -470,10 +470,10 @@ status_t AudioRecord::openRecord_l(size_t epoch)
         }
     }
 
-    // init the input reader RecordThread:
+    // Initialize the input reader RecordThread:
     status = recordService->initRecord(mSampleRate, mFormat, mChannelMask);
     if (status != NO_ERROR) {
-        ALOGE("Failed to initialize RecordThread: %d", strerror(status));
+        ALOGE("Failed to initialize RecordThread: %s", strerror(status));
         return status;
     }
 
@@ -507,7 +507,6 @@ status_t AudioRecord::openRecord_l(size_t epoch)
         mAudioRecord->asBinder()->unlinkToDeath(mDeathNotifier, this);
         mDeathNotifier.clear();
     }
-    //mInput = input;
     mAudioRecord = record;
     mCblkMemory = iMem;
     audio_track_cblk_t* cblk = static_cast<audio_track_cblk_t*>(iMemPointer);
@@ -548,7 +547,7 @@ status_t AudioRecord::openRecord_l(size_t epoch)
 
 status_t AudioRecord::obtainBuffer(Buffer* audioBuffer, int32_t waitCount)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     if (audioBuffer == NULL) {
         return BAD_VALUE;
     }
@@ -580,7 +579,7 @@ status_t AudioRecord::obtainBuffer(Buffer* audioBuffer, int32_t waitCount)
 status_t AudioRecord::obtainBuffer(Buffer* audioBuffer, const struct timespec *requested,
         struct timespec *elapsed, size_t *nonContig)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     // previous and new IAudioRecord sequence numbers are used to detect track re-creation
     uint32_t oldSequence = 0;
     uint32_t newSequence;
@@ -642,7 +641,7 @@ status_t AudioRecord::obtainBuffer(Buffer* audioBuffer, const struct timespec *r
 
 void AudioRecord::releaseBuffer(Buffer* audioBuffer)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     // all TRANSFER_* are valid
 
     size_t stepCount = audioBuffer->size / mFrameSize;
@@ -663,7 +662,7 @@ void AudioRecord::releaseBuffer(Buffer* audioBuffer)
 
 audio_io_handle_t AudioRecord::getInput() const
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     AutoMutex lock(mLock);
     return mInput;
 }
@@ -672,7 +671,7 @@ audio_io_handle_t AudioRecord::getInput() const
 
 ssize_t AudioRecord::read(void* buffer, size_t userSize)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     if (mTransfer != TRANSFER_SYNC) {
         return INVALID_OPERATION;
     }
@@ -714,7 +713,7 @@ ssize_t AudioRecord::read(void* buffer, size_t userSize)
 
 nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     mLock.lock();
     if (mAwaitBoost) {
         mAwaitBoost = false;
@@ -759,7 +758,7 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
         }
     }
 
-    // Get current position of server
+    // Get current position of server (units in frames)
     size_t position = mProxy->getPosition();
 
     // Manage marker callback
@@ -948,7 +947,7 @@ nsecs_t AudioRecord::processAudioBuffer(const sp<AudioRecordThread>& thread)
 
 status_t AudioRecord::restoreRecord_l(const char *from)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     ALOGW("dead IAudioRecord, creating a new one from %s()", from);
     ++mSequence;
     status_t result;
@@ -978,7 +977,7 @@ status_t AudioRecord::restoreRecord_l(const char *from)
 
 void AudioRecord::DeathNotifier::binderDied(const wp<IBinder>& who)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     sp<AudioRecord> audioRecord = mAudioRecord.promote();
     if (audioRecord != 0) {
         AutoMutex lock(audioRecord->mLock);
@@ -991,17 +990,17 @@ void AudioRecord::DeathNotifier::binderDied(const wp<IBinder>& who)
 AudioRecord::AudioRecordThread::AudioRecordThread(AudioRecord& receiver, bool bCanCallJava)
     : Thread(bCanCallJava), mReceiver(receiver), mPaused(true), mPausedInt(false), mPausedNs(0LL)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
 }
 
 AudioRecord::AudioRecordThread::~AudioRecordThread()
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
 }
 
 bool AudioRecord::AudioRecordThread::threadLoop()
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     {
         AutoMutex _l(mMyLock);
         if (mPaused) {
@@ -1041,7 +1040,7 @@ bool AudioRecord::AudioRecordThread::threadLoop()
 
 void AudioRecord::AudioRecordThread::requestExit()
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     // must be in this order to avoid a race condition
     Thread::requestExit();
     AutoMutex _l(mMyLock);
@@ -1054,14 +1053,14 @@ void AudioRecord::AudioRecordThread::requestExit()
 
 void AudioRecord::AudioRecordThread::pause()
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     AutoMutex _l(mMyLock);
     mPaused = true;
 }
 
 void AudioRecord::AudioRecordThread::resume()
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     AutoMutex _l(mMyLock);
     if (mPaused || mPausedInt) {
         mPaused = false;
@@ -1072,7 +1071,7 @@ void AudioRecord::AudioRecordThread::resume()
 
 void AudioRecord::AudioRecordThread::pauseInternal(nsecs_t ns)
 {
-    ALOGD("%s", __PRETTY_FUNCTION__);
+    ALOGV("%s", __PRETTY_FUNCTION__);
     AutoMutex _l(mMyLock);
     mPausedInt = true;
     mPausedNs = ns;
